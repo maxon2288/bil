@@ -1,0 +1,129 @@
+jQuery(function($){
+	$('#loadmore').click(function(event){
+        event.preventDefault();
+		$(this).text('Загрузка...'); // изменяем текст кнопки, вы также можете добавить прелоадер
+		var data = {
+			'action': 'loadmore',
+			'query': true_posts,
+			'page' : current_page
+		};
+		$.ajax({
+			url:ajaxurl, // обработчик
+			data:data, // данные
+			type:'POST', // тип запроса
+			success:function(data){
+				if( data ) {
+					$('#loadmore').text('Загрузить ещё'); // вставляем новые посты
+                    $('.articles__items').append(data);
+					current_page++; // увеличиваем номер страницы на единицу
+					if (current_page == max_pages) $('.reviews__link-cont-2').remove(); // если последняя страница, удаляем кнопку
+				} else {
+					$('.reviews__link-cont-2').remove(); // если мы дошли до последней страницы постов, скроем кнопку
+				}
+			}
+		});
+	});
+
+    $('#loadreviews').click(function(event){
+        event.preventDefault();
+        $(this).text('Загрузка...'); // изменяем текст кнопки, вы также можете добавить прелоадер
+        var data = {
+            'action': 'loadreviews',
+            'query': true_posts,
+            'page' : current_page
+        };
+        $.ajax({
+            url:ajaxurl, // обработчик
+            data:data, // данные
+            type:'POST', // тип запроса
+            success:function(data){
+                if( data ) {
+                    $('#loadreviews').text('Загрузить ещё'); // вставляем новые посты
+                    $('.reviews__items').append(data);
+                    current_page++; // увеличиваем номер страницы на единицу
+                    if (current_page == max_pages) $('.reviews__link-cont-2').remove(); // если последняя страница, удаляем кнопку
+                } else {
+                    $('.reviews__link-cont-2').remove(); // если мы дошли до последней страницы постов, скроем кнопку
+                }
+            }
+        });
+    });
+
+    loadPoints();
+	
+    function loadPoints()
+    {
+        var data = {
+            'action': 'loadpoints'
+        };
+		if($('#map').length){
+				$.ajax({
+				url:ajaxurl, // обработчик
+				data:data, // данные
+				type:'POST', // тип запроса
+				success:function(data){
+					console.log(data);
+					initMap(data);
+				}
+			});
+		}
+    }
+    function initMap(data) {
+        var coordinates = {lat: +data[0].lat, lng: +data[0].lng},
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: coordinates,
+                disableDefaultUI: false,
+                zoom: 11,
+                styles:
+                    [
+                        {
+                            "featureType": "administrative.country",
+                            "elementType": "geometry",
+                            "stylers": [
+                                {
+                                    "visibility": "simplified"
+                                },
+                                {
+                                    "hue": "#ff0000"
+                                }
+                            ]
+                        }
+                    ]
+            })
+        var html = "<div class='sel' style='display: none'> <div clas='sel__title'>Выберите район:</div><select class='niceSelect'>";
+        for(var x = 0; x<data.length; x++){
+            marker = new google.maps.Marker({
+                position: {lat: +data[x].lat, lng: +data[x].lng},
+                map: map,
+                title: data[x].title
+            });
+            var infowindow = new google.maps.InfoWindow();
+            google.maps.event.addListener(marker, 'click', (function(marker, x) {
+                return function() {
+                    infowindow.setContent(data[x].adres);
+                    infowindow.open(map, marker);
+                }
+            })(marker, x));
+            html+="<option data-lat="+data[x].lat+" data-lng="+data[x].lng+">"+data[x].title+"</option>";
+        }
+        html+="</select></div>"
+        $('.map .wrapper').append(html);
+        $('.map .niceSelect').niceSelect();
+        $('body').on('change','.map select.niceSelect', function(){
+            console.log($(this).find(':selected').data('lat') + "   " +$(this).find(':selected').data('lng'));
+            map.setCenter({lat:+$(this).find(':selected').data('lat'), lng:+$(this).find(':selected').data('lng')});
+        })
+    } 
+
+    var slidx = new Swiper(".first .swiper-container", {
+        loop: true,
+        pagination: {
+            el: '.first__pagination',
+            type: 'bullets',
+            clickable: true
+        },
+        autoplay: {
+            delay: 5000,
+        },
+    });
+});
